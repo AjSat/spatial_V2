@@ -13,7 +13,9 @@ Documentation coming soon by 21th Oct, 2022.
 
 ## Instruction
 
-Please clone or download the repository and add the folder spatial_V2 and its subfolders to the matlab path to use the dynamics algorithms.
+- Install [CasADi](https://web.casadi.org/get/) and add follow the instructions on the page to add it to the MATLAB path.
+
+- Please clone or download the repository and add the folder spatial_V2 and its subfolders to the matlab path to use the dynamics algorithms.
 
 
 
