@@ -78,7 +78,7 @@ k_con{n} = [];
 % Verify that ABA and PV agree in the absence of constraints
 assert(norm(full(DM(qdd_fd)) - full(DM(qdd_res))) < 1e-10)
 
-% constrained case, requiring zero end-effector acceleration (free-fall)
+% constrained case, requiring random end-effector acceleration
 K_con{n} = SX.eye(6);
 k_con{n} = rand(6,1);
 [qdd_res, nu_res, a_ee, Xee] = PV_tree(model, qrand, qdrand, taurand, {}, K_con, k_con);
@@ -116,7 +116,7 @@ k_con{n} = [];
 % Verify that ABA and PV agree in the absence of constraints
 assert(norm(full(DM(qdd_fd)) - full(DM(qdd_res))) < 1e-10)
 
-% soft-constrained case, requiring zero end-effector acceleration (free-fall)
+% soft-constrained case, requiring random end-effector acceleration
 Soft{n}.Ki = SX.eye(6); %SX.sym('K_con', 6, 6);
 Soft{n}.ki = rand(6,1); %SX(6,1); %SX.sym('K_con', 6, 1);
 Soft{n}.Ri = 1e12; % high quadratic penalty weight on soft-constraints
