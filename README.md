@@ -11,5 +11,10 @@ Documentation coming soon by 21th Oct, 2022.
 - Apologies to users without a MATLAB license. In the future, we hope to present an implementation of our algorithms in Python/Julia.
 
 
+## Instruction
+
+Please clone or download the repository and add the folder spatial_V2 and its subfolders to the matlab path to use the dynamics algorithms.
+
+
 
 
