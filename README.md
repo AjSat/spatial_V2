@@ -18,5 +18,7 @@ Documentation coming soon by 21th Oct, 2022.
 - Please clone or download the repository and add the folder spatial_V2 and its subfolders to the matlab path to use the dynamics algorithms.
 
 
+## Examples
 
+- Checkout iiwa.m in examples directory for PV solver usage for fixed-base robot chains
 

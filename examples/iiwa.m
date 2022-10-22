@@ -80,12 +80,13 @@ assert(norm(full(DM(qdd_fd)) - full(DM(qdd_res))) < 1e-10)
 
 % constrained case, requiring zero end-effector acceleration (free-fall)
 K_con{n} = SX.eye(6);
-k_con{n} = SX(6, 1);
+k_con{n} = rand(6,1);
 [qdd_res, nu_res, a_ee, Xee] = PV_tree(model, qrand, qdrand, taurand, {}, K_con, k_con);
 a_ee
 
-% not close to machine zero because of regularization
-assert(norm(full(DM(a_ee))) <= 1e-4);
+% verify that CD acceleration is consistent with the constraints
+% Error not close to machine zero because of regularization
+assert(norm(full(DM(Xee*a_ee - k_con{n}))) <= 1e-4);
 
 % verifying joint accelerations of PV solver matches with Featherstone's
 % ABA when the computed constraint force is added as an external force
@@ -94,3 +95,34 @@ f_ext{n} = -f_ee;
 qdd_fd = FDab(model, qrand, qdrand, taurand, f_ext);
 
 assert(norm(full(DM(qdd_fd)) - full(DM(qdd_res))) < 1e-8)
+
+%% Testing soft Gauss'
+
+import casadi.*
+% random initialization of robot state and torque input
+qrand = rand(n,1);
+qdrand = rand(n,1);
+taurand = rand(n,1);
+%taurand = inverseDynamics(robot, qrand, qdrand, zeros(7,1))*0.9;
+
+% Implement forward dynamics using Featherstone's ABA solver
+qdd_fd = FDab(model, qrand, qdrand, taurand);
+
+% Evaluate constrained dynamics without any constraints (reduces to ABA)
+K_con{n} = [];
+k_con{n} = [];
+[qdd_res, nu_res] = PV_tree(model, qrand, qdrand, taurand, {}, K_con, k_con);
+
+% Verify that ABA and PV agree in the absence of constraints
+assert(norm(full(DM(qdd_fd)) - full(DM(qdd_res))) < 1e-10)
+
+% soft-constrained case, requiring zero end-effector acceleration (free-fall)
+Soft{n}.Ki = SX.eye(6); %SX.sym('K_con', 6, 6);
+Soft{n}.ki = rand(6,1); %SX(6,1); %SX.sym('K_con', 6, 1);
+Soft{n}.Ri = 1e12; % high quadratic penalty weight on soft-constraints
+[qdd_res, nu_res, a_ee, Xee] = PV_tree(model, qrand, qdrand, taurand, {}, K_con, k_con, Soft);
+a_ee
+
+% verify that CD acceleration is consistent with the constraints
+% not close to machine zero because of regularization
+assert(norm(full(DM(Xee*a_ee - Soft{n}.ki))) <= 1e-4);

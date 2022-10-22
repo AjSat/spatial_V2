@@ -1,6 +1,6 @@
 %PV implementation for kinematic trees
 
-function  [qdd, nu, a_ee] = PV_tree( model, q, qd, tau, f_ext, K_con, k_con, Soft)
+function  [qdd, nu, a_ee, Xee] = PV_tree( model, q, qd, tau, f_ext, K_con, k_con, Soft)
 
 import casadi.*;
 
@@ -44,7 +44,7 @@ for i = 1:model.NB
         if strcmp(class(cs), 'casadi.SX')
             IA{i} = casadi_symmetric(IA{i});
         end
-        pA{i} = pA{i} + Soft{i}.Ki'*Soft{i}.Ri*Soft{i}.ki;
+        pA{i} = pA{i} - Soft{i}.Ki'*Soft{i}.Ri*Soft{i}.ki;
     end
     
 end
@@ -167,7 +167,7 @@ if ~isempty(lA0)
         if strcmp(class(cs), 'casadi.MX')
             nu = solve(LA0 + cs.eye(size(LA0,1))*1e-12, b, 'ldl');
         else
-            Lchol_osim = cholesky(LA0 + cs.eye(size(LA0,1))*1e-6);
+            Lchol_osim = cholesky(LA0 + cs.eye(size(LA0,1))*1e-9);
             nu = back_sub(Lchol_osim', forward_sub(Lchol_osim,b));
             
 %             invosim_fun = Function('f_osim', {q}, {Lchol_osim});
@@ -236,6 +236,7 @@ ee_acc_f_ext_fun = 0;
 ee_acc_X_fun = 0;
 q_acc_X_fun = 0;
 tau_X_fun = 0;
+Xee = Xa{n};
 
 % if nargin >= 5 && size(f_ext,1) >0
 %     ee_acc_f_ext_fun = jacobian(a{n}, f_ext{n});
