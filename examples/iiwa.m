@@ -82,8 +82,6 @@ assert(norm(full(DM(qdd_fd)) - full(DM(qdd_res))) < 1e-10)
 K_con{n} = SX.eye(6);
 k_con{n} = rand(6,1);
 [qdd_res, nu_res, a_ee, Xee] = PV_tree(model, qrand, qdrand, taurand, {}, K_con, k_con);
-a_ee
-
 % verify that CD acceleration is consistent with the constraints
 % Error not close to machine zero because of regularization
 assert(norm(full(DM(Xee*a_ee - k_con{n}))) <= 1e-4);
@@ -94,7 +92,12 @@ f_ee = Xee' * (K_con{n}'*nu_res);
 f_ext{n} = -f_ee;
 qdd_fd = FDab(model, qrand, qdrand, taurand, f_ext);
 
-assert(norm(full(DM(qdd_fd)) - full(DM(qdd_res))) < 1e-8)
+assert(norm(full(DM(qdd_fd)) - full(DM(qdd_res))) < 1e-6)
+
+% Verifying the PV_early output
+[qdd_res2, nu_res2, a_ee2] = PV_tree_early(model, qrand, qdrand, taurand, {}, K_con, k_con);
+full(DM(sqrt(sumsqr(qdd_res - qdd_res2))))
+full(DM(sqrt(sumsqr(a_ee - a_ee2))))
 
 %% Testing soft Gauss'
 
