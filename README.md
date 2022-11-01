@@ -22,4 +22,5 @@ Documentation coming soon by 21th Oct, 2022.
 
 - Checkout iiwa.m in examples directory for PV solver usage for fixed-base robot chains
 - Checkout go1.m in examples directory for PV solver usage for a floating-base tree
+- Checkout OSIM_atlas.m in examples directory for PV-OSIM usage and verification with KRJ and EFP algorithms.
 
