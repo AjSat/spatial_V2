@@ -1,6 +1,5 @@
 # PV Solver algorithm
 
-Documentation coming soon by 21th Oct, 2022.
 
 - Extends Featherstone's open-source (GPL3v license) and amazingly readable MATLAB [spatial_v2](https://royfeatherstone.org/spatial/v2/) for rigid-body dynamics algorithms.
  
