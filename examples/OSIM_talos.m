@@ -192,6 +192,10 @@ invOSIM_fun.n_instructions - invOSIM_fun.nnz_in - invOSIM_fun.nnz_out
 
 [~, LTL_invosim_val, Y_val, J_val, M_val, M_chol_val] = invOSIM_fun(xfb_rand, qrand, Krand, krand);
 
+% uncomment below to see sparsity patterns
+%spy(M_chol_val)
+%figure, spy(Y_val)
+
 assert(full(DM(sqrt(sumsqr(LTL_invosim_val - pv_invosim_val)))) < 1e-10)
 
 
