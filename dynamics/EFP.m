@@ -1,6 +1,8 @@
-function [Omega] = EFP(model, q, x_fb, K_con, gca)
+function [Omega, IA, KA] = EFP(model, q, x_fb, K_con, gca)
 % Implements Patrick Wensing's EFP algorithm to compute the OSIM matrix
 %   
+
+floating_base = true;
 
 import casadi.*;
 
@@ -22,7 +24,12 @@ Xup{1} = plux( rq(qn), r );		% xform fixed --> f.b. coords
 
 IA{1} = model.I{1};
 
-
+if ~floating_base
+    i = 1;
+    [ XJ, S{i} ] = jcalc( model.jtype{i}, q(i) );
+    Xup{i} = XJ * model.Xtree{i};
+    IA{i} = model.I{i};
+end
 for i = 2:model.NB
     [ XJ, S{i} ] = jcalc( model.jtype{i}, q(i) );
     Xup{i} = XJ * model.Xtree{i};
@@ -60,11 +67,15 @@ for i = model.NB:-1:2
     d{i} = S{i}' * U{i};
     par_i = model.parent(i);
     
-    P{i} = SX.eye(6) - (U{i}/d{i})*S{i}';
+    P{i} = SX.eye(6) - U{i}/d{i}*S{i}';
     
+    IA{model.parent(i)} = IA{model.parent(i)} + Xup{i}' * casadi_symmetric(P{i}*IA{i}) *Xup{i};
     
-    
-    IA{model.parent(i)} = IA{model.parent(i)} + Xup{i}' * P{i}*IA{i} * Xup{i};
+%     Ia = IA{i} - U{i}/d{i}*U{i}';
+%     Ia = casadi_symmetric(Ia);
+%     
+%     
+%     IA{model.parent(i)} = IA{model.parent(i)} + Xup{i}' * Ia * Xup{i};
     if strcmp(class(cs), 'casadi.SX')
         IA{model.parent(i)} = casadi_symmetric(IA{model.parent(i)});
     end  
@@ -74,12 +85,26 @@ for i = model.NB:-1:2
     end
 end
 
+if ~floating_base
+    i = 1;
+    U{i} = IA{i} * S{i};
+    d{i} = S{i}' * U{i};
+    par_i = model.parent(i);
+    
+    P{i} = SX.eye(6) - U{i}/d{i}*S{i}';
+end
+
 Omega = {};
 
 for i = 2:model.NB
    Omega{i,i} = casadi_symmetric(S{i}/d{i}*S{i}');
 end
-Omega{1,1} = casadi_symmetric(inv(IA{1}));
+
+if floating_base
+    Omega{1,1} = casadi_symmetric(inv(IA{1}));
+else
+    Omega{1,1} = casadi_symmetric(S{1}/d{1}*S{1}');
+end
 
 for j = cons{1}
     Omega{1, j} = Omega{1,1}*KA{1,j}';
@@ -98,6 +123,12 @@ for i = 1:length(cons_1)-1
         Omega{cons_1(i), cons_1(j)} = KA{gca(i, j), cons_1(i)} * Omega{gca(i, j), cons_1(j)};
         Omega{cons_1(j), cons_1(i)} = (Omega{cons_1(i), cons_1(j)})';
     end
+end
+
+%%% added on FEb 14, 23
+
+for i = cons_1
+    Omega{i, i} = KA{i, i} * Omega{i, i};
 end
 
 % for i = 1:model.NB-1

@@ -1,6 +1,6 @@
 %PV implementation for kinematic trees
 
-function  [qdd, nu, a_ee, Xee] = PV_tree( model, q, qd, tau, f_ext, K_con, k_con, Soft)
+function  [qdd, nu, a_ee, Xee, IA, KA0, LA0, v_ee] = PV_tree( model, q, qd, tau, f_ext, K_con, k_con, Soft)
 
 import casadi.*;
 
@@ -17,6 +17,8 @@ end
 n = size(q, 1);
 a_grav = get_gravity(model);
 
+prop_a_grav = true;
+
 qdd = cs.zeros(model.NB,1);
 
 
@@ -24,16 +26,24 @@ for i = 1:model.NB
     [ XJ, S{i} ] = jcalc( model.jtype{i}, q(i) );
     vJ = S{i}*qd(i);
     Xup{i} = XJ * model.Xtree{i};
-    new_rot = XJ(1:3, 1:3)*model.Xtree{i}(1:3, 1:3);
-    off_diag = XJ(4:6, 1:3)*model.Xtree{i}(1:3, 1:3) + XJ(4:6, 4:6)*model.Xtree{i}(4:6, 1:3);
-    Xup{i} = [new_rot, csX(3,3); off_diag, new_rot];
+%     new_rot = XJ(1:3, 1:3)*model.Xtree{i}(1:3, 1:3);
+%     off_diag = XJ(4:6, 1:3)*model.Xtree{i}(1:3, 1:3) + XJ(4:6, 4:6)*model.Xtree{i}(4:6, 1:3);
+%     Xup{i} = [new_rot, csX(3,3); off_diag, new_rot];
+    
+    
     
     if model.parent(i) == 0
         v{i} = vJ;
         c{i} = zeros(size(a_grav));
+        if prop_a_grav
+            a_grav_links{i} = Xup{i}*a_grav;
+        end
     else
         v{i} = Xup{i}*v{model.parent(i)} + vJ;
         c{i} = crm(v{i}) * vJ;
+        if prop_a_grav
+            a_grav_links{i} = Xup{i}*a_grav_links{model.parent(i)};
+        end
     end
     
     IA{i} = model.I{i};
@@ -43,6 +53,9 @@ for i = 1:model.NB
         IA{i} = IA{i} + Soft{i}.Ki'*Soft{i}.Ri*Soft{i}.Ki;
         if strcmp(class(cs), 'casadi.SX')
             IA{i} = casadi_symmetric(IA{i});
+        end
+        if prop_a_grav
+            Soft{i}.ki = Soft{i}.ki - Soft{i}.Ki*a_grav_links{i};
         end
         pA{i} = pA{i} - Soft{i}.Ki'*Soft{i}.Ri*Soft{i}.ki;
     end
@@ -57,7 +70,10 @@ for i = 1:model.NB
     else
         HA{i} = cs.eye(m_i)*1e6;
     end
-    lA{i} = -k_con{i};
+    if m_i > 0 && prop_a_grav
+        lA{i} = -k_con{i}; 
+        lA{i} = lA{i} + KA{i}*a_grav_links{i};
+    end
     
 end
 
@@ -167,7 +183,7 @@ if ~isempty(lA0)
         if strcmp(class(cs), 'casadi.MX')
             nu = solve(LA0 + cs.eye(size(LA0,1))*1e-12, b, 'ldl');
         else
-            Lchol_osim = cholesky(LA0 + cs.eye(size(LA0,1))*1e-9);
+            Lchol_osim = cholesky(LA0 + cs.eye(size(LA0,1))*1e-8*0);
             nu = back_sub(Lchol_osim', forward_sub(Lchol_osim,b));
             
 %             invosim_fun = Function('f_osim', {q}, {Lchol_osim});
@@ -198,7 +214,7 @@ for i = 1:model.NB
     else
         a{i} = Xup{i} * a{model.parent(i)} + c{i};
     end
-    if size(KA{i}, 2) > 0 && i > 1
+    if size(KA{i}, 1) > 0 && i > 1
         mi = size(KA{i}, 1);
         lambda{i} = lambda{model.parent(i)}(end - mi + 1 : end);
         lambda{model.parent(i)} = lambda{model.parent(i)}(1 : end - m_i);
@@ -237,6 +253,7 @@ ee_acc_X_fun = 0;
 q_acc_X_fun = 0;
 tau_X_fun = 0;
 Xee = Xa{n};
+v_ee = v{n};
 
 % if nargin >= 5 && size(f_ext,1) >0
 %     ee_acc_f_ext_fun = jacobian(a{n}, f_ext{n});

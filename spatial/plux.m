@@ -11,13 +11,15 @@ function  [o1,o2] = plux( i1, i2 )
 % the same transform as rotx(1)*xlt([2 3 4]).  If two arguments are
 % supplied then they are assumed to be E and r, otherwise X.
 
+import casadi.*
+
 if nargin == 2				% E,r --> X
 
-  o1 = [ i1, zeros(3); -i1*skew(i2), i1 ];
+  o1 = sparsify([ i1, zeros(3); -i1*skew(i2), i1 ]);
 
 else					% X --> E,r
 
-  o1 = i1(1:3,1:3);
-  o2 = -skew(o1'*i1(4:6,1:3));
+  o1 = sparsify(i1(1:3,1:3));
+  o2 = -sparify(skew(o1'*i1(4:6,1:3)));
 
 end

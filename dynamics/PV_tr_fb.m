@@ -1,6 +1,6 @@
 %PV implementation for kinematic trees
 
-function  [qdd, nu, xd_fb, Xs, Vs, As] = PV_tr_fb( model, x_fb, q, qd, tau, f_ext, K_con, k_con, Soft)
+function  [qdd, nu, xd_fb, Xs, Vs, As, LA, IA, KA, a_ee] = PV_tr_fb( model, x_fb, q, qd, tau, f_ext, K_con, k_con, Soft)
 
 import casadi.*;
 
@@ -30,6 +30,8 @@ tau = [0; tau];
 n = size(q, 1);
 a_grav = get_gravity(model);
 
+prop_a_grav = true;
+
 qdd = cs.zeros(model.NB,1);
 
 F_cstr0 = [];
@@ -50,6 +52,10 @@ KA{1} = [];
 LA{1} = [];
 lA{1} = [];
 
+if prop_a_grav
+    a_grav_links{1} = Xup{1}*a_grav;
+end
+
 
 for i = 2:model.NB
     [ XJ, S{i} ] = jcalc( model.jtype{i}, q(i) );
@@ -60,12 +66,19 @@ for i = 2:model.NB
     IA{i} = model.I{i};
     pA{i} = crf(v{i}) * (model.I{i} * v{i});
     
+    if prop_a_grav
+            a_grav_links{i} = Xup{i}*a_grav_links{model.parent(i)};
+    end
+    
     if nargin > 8 && ~isempty(Soft{i})
         IA{i} = IA{i} + Soft{i}.Ki'*Soft{i}.Ri*Soft{i}.Ki;
         if strcmp(class(cs), 'casadi.SX')
             IA{i} = casadi_symmetric(IA{i});
         end
-        pA{i} = pA{i} + Soft{i}.Ki'*Soft{i}.Ri*Soft{i}.ki;
+        if prop_a_grav
+            Soft{i}.ki = Soft{i}.ki - Soft{i}.Ki*a_grav_links{i};
+        end
+        pA{i} = pA{i} - Soft{i}.Ki'*Soft{i}.Ri*Soft{i}.ki;
     end
     
 end
@@ -82,6 +95,9 @@ for i = 1:model.NB
         counter = counter + size(LA{1}, 1);
         nu_vals = [nu_vals, counter];
         
+    end
+    if m_i > 0 && prop_a_grav
+        lA{i} = lA{i} + KA{i}*a_grav_links{i};
     end
     
 end
@@ -151,6 +167,8 @@ if isempty(lA{1})
         Lchol = cholesky(IA{1});
         a{1} = -back_sub(Lchol', forward_sub(Lchol,pA{1})); 
         nu = 0;
+%         a_fun = Function('f_rob_dyn', {x_fb, q(2:end), qd(2:end), tau(2:end)}, {a{1}});
+%         a_fun.n_instructions
     end
 
 else
@@ -158,7 +176,7 @@ else
         OSIM = inv(LA{1} + cs.eye(size(LA{1},1))*1e-6, 'ldl');
     else
 %         OSIM = inv(LA{1} + cs.eye(size(LA{1},1))*1e-6);
-          Lchol_osim = cholesky(LA{1} + cs.eye(size(LA{1},1))*1e-6);
+          Lchol_osim = cholesky(LA{1} + cs.eye(size(LA{1},1))*1e-6*0);
           
           % uncomment only for fast OSIM chol
 %           Lambda_b = cholesky(LA{1});
@@ -189,6 +207,8 @@ else
         FB_inertia = casadi_symmetric(FB_inertia);
         Lchol = cholesky(FB_inertia);
         a{1} = back_sub(Lchol', forward_sub(Lchol,b)); 
+%         a_fun = Function('f_rob_dyn', {x_fb, q(2:end), qd(2:end), tau(2:end)}, {a{1}});
+%         a_fun.n_instructions
     else
         a{1} = solve(FB_inertia, b, 'ldl');
     end
@@ -207,7 +227,7 @@ for i = 2:model.NB
     if size(KA{i}, 2) > 0
         mi = size(KA{i}, 1);
         lambda{i} = lambda{model.parent(i)}(end - mi + 1 : end);
-        lambda{model.parent(i)} = lambda{model.parent(i)}(1 : end - m_i);
+        lambda{model.parent(i)} = lambda{model.parent(i)}(1 : end - mi);
         con_torque(i) = -S{i}' * KA{i}' * lambda{i};
     else
         con_torque(i) = 0;
@@ -215,6 +235,8 @@ for i = 2:model.NB
     qdd(i,1) = (u{i} - U{i}'*a{i} + con_torque(i))/d{i};
     a{i} = a{i} + S{i}*qdd(i);
 end
+
+a_ee = Xa{model.NB}\a{model.NB};
 
 a1_fb = Xup{1}\a{1} + a_grav;
 xd_fb = [x_fb(8:end); a1_fb];

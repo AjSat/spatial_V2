@@ -19,6 +19,8 @@ function  fbmodel = floatbase( model )
 % only joint connected to the fixed base, and that Xtree{1} is the
 % identity.
 
+import casadi.*
+
 if size(model.Xtree{1},1) == 3
   error('floatbase applies to spatial models only');
 end
@@ -43,9 +45,9 @@ fbmodel.jtype = ['Px' 'Py' 'Pz' 'Rx' 'Ry' 'Rz' model.jtype(2:end)];
 
 fbmodel.parent = [0 1 2 3 4 model.parent+5];
 
-fbmodel.Xtree = [eye(6) eye(6) eye(6) eye(6) eye(6) model.Xtree];
+fbmodel.Xtree = [SX.eye(6) SX.eye(6) SX.eye(6) SX.eye(6) SX.eye(6) model.Xtree];
 
-fbmodel.I = [zeros(6) zeros(6) zeros(6) zeros(6) zeros(6) model.I];
+fbmodel.I = [SX(6,6) SX(6,6) SX(6,6) SX(6,6) SX(6,6) SX(6,6) model.I];
 
 if isfield( model, 'appearance' )
   fbmodel.appearance.body = {{}, {}, {}, {}, {}, model.appearance.body{:}};

@@ -1,4 +1,4 @@
-function  [H,C] = HandC( model, q, qd, f_ext )
+function  [H,C, v, avp, a_grav_links, Jac, Xa, Xup] = HandC( model, q, qd, f_ext )
 
 % HandC  Calculate coefficients of equation of motion
 % [H,C]=HandC(model,q,qd,f_ext)  calculates the coefficients of the
@@ -16,8 +16,9 @@ a_grav = get_gravity(model);
 
 import casadi.*
 
-C = SX.zeros(model.NB, 1);
-H = SX.zeros(model.NB, model.NB);
+C = SX(model.NB, 1);
+H = SX(model.NB, model.NB);
+Jac = [];
 
 for i = 1:model.NB
   [ XJ, S{i} ] = jcalc( model.jtype{i}, q(i) );
@@ -26,11 +27,16 @@ for i = 1:model.NB
   if model.parent(i) == 0
     v{i} = vJ;
     avp{i} = Xup{i} * -a_grav;
+    a_grav_links{i} = Xup{i} * -a_grav;
+    Xa{i} = Xup{i};
   else
     v{i} = Xup{i}*v{model.parent(i)} + vJ;
     avp{i} = Xup{i}*avp{model.parent(i)} + crm(v{i})*vJ;
+    a_grav_links{i} = Xup{i} * a_grav_links{model.parent(i)};
+    Xa{i} = Xup{i}*Xa{model.parent(i)};
   end
-  fvp{i} = model.I{i}*avp{i} + crf(v{i})*model.I{i}*v{i};
+  fvp{i} = model.I{i}*avp{i} + crf(v{i})*(model.I{i}*v{i});
+  Jac = [Jac, spatial_inv(Xa{i})*S{i}];
 end
 
 if nargin == 4
@@ -48,7 +54,7 @@ IC = model.I;				% composite inertia calculation
 
 for i = model.NB:-1:1
   if model.parent(i) ~= 0
-    IC{model.parent(i)} = IC{model.parent(i)} + Xup{i}'*IC{i}*Xup{i};
+    IC{model.parent(i)} = casadi_symmetric(IC{model.parent(i)} + Xup{i}'*IC{i}*Xup{i});
   end
 end
 

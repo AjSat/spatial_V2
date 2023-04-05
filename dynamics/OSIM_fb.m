@@ -1,6 +1,6 @@
 % Compute the inv_OSIM for a floating-base robot
 
-function  [inv_OSIM] = OSIM_fb( model, x_fb, q, K_con, k_con)
+function  [inv_OSIM, IA, KA, LA] = OSIM_fb( model, x_fb, q, K_con, k_con)
 
 import casadi.*;
 
@@ -52,7 +52,7 @@ for i = model.NB:-1:2
     U{i} = IA{i} * S{i};
     d{i} = S{i}' * U{i};
     
-    Ia = IA{i} - U{i}/d{i}*U{i}';
+    Ia = IA{i} - (U{i}/d{i})*U{i}';
     if strcmp(class(cs), 'casadi.SX')
         Ia = casadi_symmetric(Ia);
     end
