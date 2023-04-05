@@ -21,5 +21,5 @@
 
 - Checkout iiwa.m in examples directory for PV solver usage for fixed-base robot chains
 - Checkout go1.m in examples directory for PV solver usage for a floating-base tree
-- Checkout OSIM_atlas.m in examples directory for PV-OSIM usage and verification with KRJ and EFP algorithms.
+- Checkout OSIM_talos.m in examples directory for usage, benchmarking and verification of the EFPA, PV-OSIM, PV-OSIM-fast and the LTL-OSIM algorithms.
 
