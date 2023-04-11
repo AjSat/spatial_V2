@@ -153,7 +153,7 @@ pv_invosim_fun.n_instructions - pv_invosim_fun.nnz_in - pv_invosim_fun.nnz_out
 lambda_sol = back_sub(Lambda_b_val', forward_sub(Lambda_b_val, krand)) - Lcrossk_val*(back_sub(H_plus_cross_K_val', forward_sub(H_plus_cross_K_val, (Lcrossk_val'*krand))));
 lambda_sol_from_pv_osim = inv(pv_invosim_val)*krand;
 disp("Error between PV-OSIM and PV-OSIM-fast (not zero because of numerical reasons)")
-full(DM(sqrt(sumsqr(lambda_sol - lambda_sol_from_pv_osim))))
+full(DM(sqrt(sumsqr(lambda_sol - lambda_sol_from_pv_osim)/sumsqr(lambda_sol))))
 
 % LTL-OSIM algorithm
 [H,C,~, Vs] = HandC_fb(model, x_fb, q, qd);
