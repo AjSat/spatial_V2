@@ -1,4 +1,4 @@
-function  [Xj,S] = jcalc( jtyp, q )
+function  [Xj,S] = jcalc( jtyp, q, axis )
 
 % jcalc  joint transform and motion subspace matrices.
 % [Xj,S]=jcalc(type,q)  returns the joint transform and motion subspace
@@ -11,6 +11,11 @@ function  [Xj,S] = jcalc( jtyp, q )
 % 'pitch'.)  q is the joint's position variable.
 
 import casadi.*;
+
+if nargin == 3
+  axis = axis;
+  
+end
 
 if strcmp(class(q), 'casadi.MX')
     cs = MX;
@@ -66,6 +71,9 @@ switch code
   case 'py'				% planar prismatic Y axis
     Xj = plnr( 0, [0 q] );
     S = [0;0;1];
+  case 'R3'
+    Xj = [xlt(axis)];
+    S = [axis'; csX(3,1)];        
   otherwise
     error( 'unrecognised joint code ''%s''', code );
 end

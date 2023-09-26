@@ -41,6 +41,7 @@ gca(3,4) = 15;
 
 constraints_per_ee = 6;
 feet_indices = [7, 13]; %7, 13
+feet_indices = [7, 13]; %7, 13
 K_con_all = [];
 k_con_all = [];
 constraints_per_ee = 6;
@@ -198,5 +199,18 @@ invOSIM_fun.n_instructions - invOSIM_fun.nnz_in - invOSIM_fun.nnz_out
 
 assert(full(DM(sqrt(sumsqr(LTL_invosim_val - pv_invosim_val)))) < 1e-10)
 
+
+%% constrained ABA OSIM 
+import casadi.*
+dampedOSIM = constrainedABA_OSIM(model, x_fb,  q, K_con, 1e5);
+% Krand_con{model.NB} = {};
+% constrained_links = [feet_indices, feet_indices2];
+% for i = 1:length(constrained_links)
+%     Krand_con{constrained_links(i)} = Krand((i-1)*6 + 1 : i*6 , :);
+% end
+% dampedOSIM_val = constrainedABA_OSIM(model, xfb_rand,  qrand, Krand_con, 1e5);
+
+dampedOSIM_fun =  Function('f_rob_dyn', {x_fb, q, K_con_all}, {dampedOSIM});
+dampedOSIM_val = dampedOSIM_fun(xfb_rand, qrand, Krand);
 
 

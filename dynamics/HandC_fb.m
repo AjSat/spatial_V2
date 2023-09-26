@@ -29,7 +29,11 @@ C = SX(model.NB + 5, 1);
 H = SX(model.NB + 5, model.NB + 5);
 
 for i = 2:model.NB
-  [ XJ, S{i} ] = jcalc( model.jtype{i}, q(i) );
+  if strcmp('R3', model.jtype{i})
+      [ XJ, S{i} ] = jcalc( model.jtype{i}, q(i), model.axis{i} );
+  else
+    [ XJ, S{i} ] = jcalc( model.jtype{i}, q(i) );
+  end
   vJ = S{i}*qd(i);
   Xup{i} = XJ * model.Xtree{i};
   v{i} = Xup{i}*v{model.parent(i)} + vJ;

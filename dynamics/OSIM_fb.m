@@ -21,13 +21,18 @@ qn = x_fb(1:4);				% unit quaternion fixed-->f.b.
 r = x_fb(5:7);				% position of f.b. origin
 Xup{1} = plux( rq(qn), r );		% xform fixed --> f.b. coords
 
+constraints_supported{model.NB} = [];
 
 IA{1} = model.I{1};
 KA{1} = [];
 LA{1} = [];
 
 for i = 2:model.NB
-    [ XJ, S{i} ] = jcalc( model.jtype{i}, q(i) );
+    if strcmp(model.jtype{i}, 'R3')
+        [ XJ, S{i} ] = jcalc( model.jtype{i}, q(i) , model.axis{i});
+    else
+        [ XJ, S{i} ] = jcalc( model.jtype{i}, q(i));
+    end
     Xup{i} = XJ * model.Xtree{i};
     IA{i} = model.I{i};   
 end
@@ -36,7 +41,10 @@ end
 for i = 1:model.NB
     KA{i} = K_con{i};
     m_i = size(K_con{i}, 1);
-    LA{i} = csX(m_i, m_i);    
+    LA{i} = csX(m_i, m_i);   
+    if size(K_con{i}, 1) > 0
+        constraints_supported{i} = [i]; 
+    end
 end
 
 parent = model.parent;
@@ -71,8 +79,8 @@ for i = model.NB:-1:2
             if strcmp(class(cs), 'casadi.SX')
                 LA{model.parent(i)} = casadi_symmetric(LA{model.parent(i)});
             end
+            constraints_supported{model.parent(i)} = [constraints_supported{model.parent(i)}, constraints_supported{i}];
         end
-    
 end
 
 if isempty(LA{1})
